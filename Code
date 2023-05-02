@@ -1,1 +1,65 @@
+2. Prey-Predator Model: Carrying Capacity and Randomized Carrying Capacity
+Oscillation Graph:
 
+# parameters
+pars <- c(alpha = 1, beta = 0.2, delta = 0.5, gamma = 0.2, k=50)
+
+deriv <- function(t, state, pars) {
+  with(as.list(c(state, pars)), {
+    d_x <- alpha * x * (1-x/k) - beta * x * y
+    d_y <- delta * x * y - gamma * y
+    return(list(c(x = d_x, y = d_y)))
+  })
+}
+lv_results <- ode(init, times, deriv, pars)
+
+
+lv_model <- function(pars, times = seq(0, 50, by = 1)) {
+  # initial state 
+  state <- c(x = 2, y = 3) 
+  # derivative
+  deriv <- function(t, state, pars) {
+    with(as.list(c(state, pars)), {
+      d_x <- alpha * x * (1-x/k) - beta * x * y
+      d_y <- delta * x * y - gamma * y
+      return(list(c(x = d_x, y = d_y)))
+    })
+  }
+  # solve
+  ode(y = state, times = times, func = deriv, parms = pars)
+}
+lv_results <- lv_model(pars = pars, times = seq(0, 200, by = 0.25))
+
+
+lv_results %>% 
+  data.frame() %>% 
+  gather(var, pop, -time) %>% 
+  mutate(var = if_else(var == "x", "Prey", "Predator")) %>% 
+  ggplot(aes(x = time, y = pop)) +
+  geom_line(aes(color = var)) +
+  scale_color_brewer(NULL, palette = "Set1") +
+  labs(title = "Lotka-Volterra predator prey model",
+       subtitle = paste(names(pars), pars, sep = " = ", collapse = "; "),
+       x = "Time", y = "Population density")
+
+Phase Plot:
+
+lotkaVolterra <- function(t, y, parameters) {
+  x <- y[1]
+  y <- y[2]
+  alpha  <- parameters[1]
+  beta <- parameters[2]
+  delta <- parameters[3]
+  gamma   <- parameters[4]
+  k <- parameters[5]
+  dy    <- numeric(2)
+  dy[1] <- alpha * x * (1-x/k) - beta * x * y
+  dy[2] <- delta * x * y - gamma * y
+  list(dy)
+}
+
+lotkaVolterra.flowField <- flowField(lotkaVolterra, xlim = c(0, 10), ylim = c(0, 10),parameters = c(1, 0.2, 0.5, 0.2, 30), points = 19, add = FALSE)
+grid()
+lotkaVolterra.nullclines <- nullclines(lotkaVolterra, xlim = c(-1, 10), ylim = c(-1, 10), parameters = c(1, 0.2, 0.5, 0.2, 30), points = 300)
+y0 <- matrix(c(1, 2, 2, 3, 3, 4), ncol = 2, nrow = 3, byrow = TRUE)
+lotkaVolterra.trajectory <- trajectory(lotkaVolterra, y0 = y0, tlim = c(0,100), parameters = c(1, 0.2, 0.5, 0.2, 30), col = c("black", "red", "purple"))
