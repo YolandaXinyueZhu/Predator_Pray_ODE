@@ -63,3 +63,224 @@ grid()
 lotkaVolterra.nullclines <- nullclines(lotkaVolterra, xlim = c(-1, 10), ylim = c(-1, 10), parameters = c(1, 0.2, 0.5, 0.2, 30), points = 300)
 y0 <- matrix(c(1, 2, 2, 3, 3, 4), ncol = 2, nrow = 3, byrow = TRUE)
 lotkaVolterra.trajectory <- trajectory(lotkaVolterra, y0 = y0, tlim = c(0,100), parameters = c(1, 0.2, 0.5, 0.2, 30), col = c("black", "red", "purple"))
+
+3.Prey-Predator simulation with saturation effect
+
+Oscillation Graph:
+
+# parameters
+pars <- c(alpha = 12, beta = 20, delta = 4, gamma = 1.6, k = 11, D = 4.8)
+# x and y are populations of prey and predator
+# k is the carrying capacity
+
+deriv <- function(t, state, pars) {
+  with(as.list(c(state, pars)), {
+    d_x <- alpha * x * (1-x/k) - (beta * x * y)/(x+D)
+    d_y <- (delta * x * y)/(x+D) - gamma * y
+    return(list(c(x = d_x, y = d_y)))
+  })
+}
+lv_results <- ode(init, times, deriv, pars)
+
+lv_model <- function(pars, times = seq(0, 50, by = 1)) {
+  # initial state 
+  state <- c(x = 2, y = 1) 
+  # derivative
+  deriv <- function(t, state, pars) {
+    with(as.list(c(state, pars)), {
+      d_x <- alpha * x * (1-x/k) - (beta * x * y)/(x+D)
+      d_y <- (delta * x * y)/(x+D) - gamma * y
+      return(list(c(x = d_x, y = d_y)))
+    })
+  }
+  # solve
+  ode(y = state, times = times, func = deriv, parms = pars)
+}
+lv_results <- lv_model(pars = pars, times = seq(0, 50, by = 0.25))
+
+
+lv_results %>% 
+  data.frame() %>% 
+  gather(var, pop, -time) %>% 
+  mutate(var = if_else(var == "x", "Prey", "Predator")) %>% 
+  ggplot(aes(x = time, y = pop)) +
+  geom_line(aes(color = var)) +
+  scale_color_brewer(NULL, palette = "Set1") +
+  labs(title = "Lotka-Volterra predator prey model",
+       subtitle = paste(names(pars), pars, sep = " = ", collapse = "; "),
+       x = "Time", y = "Population density")
+
+Phase Plot:
+
+lotkaVolterra <- function(t, y, parameters) {
+  x <- y[1]
+  y <- y[2]
+  alpha  <- parameters[1]
+  beta <- parameters[2]
+  delta <- parameters[3]
+  gamma   <- parameters[4]
+  k <- parameters[5]
+  B <- parameters[6]
+  D <- parameters[7]
+  dy    <- numeric(2)
+  dy[1] <- alpha * x * (1-x/k) - (B * x * y)/(x+D)
+  dy[2] <- (delta * x * y)/(x+D) - gamma * y
+  list(dy)
+}
+
+lotkaVolterra.flowField <- flowField(lotkaVolterra, xlim = c(0, 10), ylim = c(0, 10),parameters = c(12, 0.2, 4, 1.6, 8, 20, 3.9), points = 19, add = FALSE)
+grid()
+lotkaVolterra.nullclines <- nullclines(lotkaVolterra, xlim = c(-1, 10), ylim = c(-1, 10), parameters = c(12, 0.2, 4, 1.6, 8, 20, 3.9), points = 300)
+y0 <- matrix(c(1, 2, 3, 4, 5, 6), ncol = 2, nrow = 3, byrow = TRUE)
+lotkaVolterra.trajectory <- trajectory(lotkaVolterra, y0 = y0, tlim = c(0,100), parameters = c(12, 0.2, 4, 1.6, 8, 20, 3.9), col = c("black", "red", "purple"))
+
+
+4.Prey-Predator simulation with Allee Effect
+Oscillation Graph:
+# parameters
+pars <- c(alpha = 1, beta = 0.2, delta = 0.5, gamma = 0.2, k = 50, e = 0.3) # In this section, the value of e will be altered to measure its effect
+# x and y are populations of prey and predator
+# k is the carrying capacity
+
+
+deriv <- function(t, state, pars) {
+  with(as.list(c(state, pars)), {
+    d_x <- alpha * x * (x/(e+x)) * (1-x/k) - beta * x * y
+    d_y <- delta * beta * x * y *(y/(e+y)) - gamma * y
+    return(list(c(x = d_x, y = d_y)))
+  })
+}
+lv_results <- ode(init, times, deriv, pars)
+
+
+lv_model <- function(pars, times = seq(0, 50, by = 1)) {
+  # initial state 
+  state <- c(x = 2, y = 3) 
+  # derivative
+  deriv <- function(t, state, pars) {
+    with(as.list(c(state, pars)), {
+      d_x <- alpha * x * (x/(e+x)) * (1-x/k) - beta * x * y
+      d_y <- delta * beta * x * y *(y/(e+y)) - gamma * y
+      return(list(c(x = d_x, y = d_y)))
+    })
+  }
+  # solve
+  ode(y = state, times = times, func = deriv, parms = pars)
+}
+lv_results <- lv_model(pars = pars, times = seq(0, 100, by = 0.25))
+
+
+lv_results %>% 
+  data.frame() %>% 
+  gather(var, pop, -time) %>% 
+  mutate(var = if_else(var == "x", "Prey", "Predator")) %>% 
+  ggplot(aes(x = time, y = pop)) +
+  geom_line(aes(color = var)) +
+  scale_color_brewer(NULL, palette = "Set1") +
+  labs(title = "Lotka-Volterra predator prey model with Allee effect",
+       subtitle = paste(names(pars), pars, sep = " = ", collapse = "; "),
+       x = "Time", y = "Population density")
+
+Phase Plot:
+
+lotkaVolterra <- function(t, y, parameters) {
+  x <- y[1]
+  y <- y[2]
+  alpha  <- parameters[1]
+  beta <- parameters[2]
+  delta <- parameters[3]
+  gamma   <- parameters[4]
+  k <- parameters[5]
+  e <- parameters[6]
+  dy    <- numeric(2)
+  dy[1] <- alpha * x * (x/(e+x)) * (1-x/k) - beta * x * y
+  dy[2] <- delta * beta * x * y *(y/(e+y)) - gamma * y
+  list(dy)
+}
+
+lotkaVolterra.flowField <- flowField(lotkaVolterra, xlim = c(0, 10), ylim = c(0, 10),parameters = c(1, 0.2, 0.5, 0.2, 50, 0.7), points = 19, add = FALSE)
+grid()
+lotkaVolterra.nullclines <- nullclines(lotkaVolterra, xlim = c(-1, 10), ylim = c(-1, 10), parameters = c(1, 0.2, 0.5, 0.2, 50, 0.7), points = 300)
+y0 <- matrix(c(1, 2, 2, 3, 3, 4), ncol = 2, nrow = 3, byrow = TRUE)
+lotkaVolterra.trajectory <- trajectory(lotkaVolterra, y0 = y0, tlim = c(0,100), parameters = c(1, 0.2, 0.5, 0.2, 50, 0.7), col = c("black", "red", "purple"))
+
+
+lotkaVolterra_s <- stability(lotkaVolterra, ystar = c(2,100), parameters = c(1, 0.2, 0.5, 0.2, 50, 0.7))
+
+
+5.Prey-Predator simulation with Beddington–DeAngelis Functional Response
+
+Oscillation Graph:
+
+# parameters
+pars <- c(alpha = 12, beta = 0.2, delta = 4, gamma = 1.6, k = 5, B = 20, k1 = 0.9, k2 = 0.7)
+# x and y are populations of prey and predator
+# k is the carrying capacity
+
+
+deriv <- function(t, state, pars) {
+  with(as.list(c(state, pars)), {
+    d_x <- alpha * x * (1-x/k) - (beta * x * y)/(1 + k1*x + k2*y)
+    d_y <- (beta* delta * x * y)/(1 + k1*x + k2*y) - gamma * y
+    return(list(c(x = d_x, y = d_y)))
+  })
+}
+lv_results <- ode(init, times, deriv, pars)
+
+
+lv_model <- function(pars, times = seq(0, 50, by = 1)) {
+  # initial state 
+  state <- c(x = 5, y = 3) 
+  # derivative
+  deriv <- function(t, state, pars) {
+    with(as.list(c(state, pars)), {
+      d_x <- alpha * x * (1-x/k) - (B * x * y)/(1 + k1*x + k2*y)
+      d_y <- (delta * x * y)/(1 + k1*x + k2*y) - gamma * y
+      return(list(c(x = d_x, y = d_y)))
+    })
+  }
+  # solve
+  ode(y = state, times = times, func = deriv, parms = pars)
+}
+lv_results <- lv_model(pars = pars, times = seq(0, 50, by = 0.25))
+
+
+lv_results %>% 
+  data.frame() %>% 
+  gather(var, pop, -time) %>% 
+  mutate(var = if_else(var == "x", "Prey", "Predator")) %>% 
+  ggplot(aes(x = time, y = pop)) +
+  geom_line(aes(color = var)) +
+  scale_color_brewer(NULL, palette = "Set1") +
+  labs(title = "Lotka-Volterra predator prey model",
+       subtitle = paste(names(pars), pars, sep = " = ", collapse = "; "),
+       x = "Time", y = "Population density")
+
+
+Phase Plot:
+lotkaVolterra <- function(t, y, parameters) {
+  x <- y[1]
+  y <- y[2]
+  alpha  <- parameters[1]
+  beta <- parameters[2]
+  delta <- parameters[3]
+  gamma   <- parameters[4]
+  k <- parameters[5]
+  B <- parameters[6]
+  k1 <- parameters[7]
+  k2 <- parameters[8]
+  dy    <- numeric(2)
+  dy[1] <- alpha * x * (1-x/k) - (B * x * y)/(1 + k1*x + k2*y)
+  dy[2] <- (delta * x * y)/(1 + k1*x + k2*y) - gamma * y
+  list(dy)
+}
+
+lotkaVolterra.flowField <- flowField(lotkaVolterra, xlim = c(0, 10), ylim = c(0, 10),parameters = c(12, 0.2, 4, 1.6, 5, 20, 0.9, 0.3), points = 19, add = FALSE)
+grid()
+lotkaVolterra.nullclines <- nullclines(lotkaVolterra, xlim = c(-1, 10), ylim = c(-1, 10), parameters = c(12, 0.2, 4, 1.6, 5, 20, 0.9,0.3), points = 300)
+y0 <- matrix(c(1, 2, 3, 4, 5, 6), ncol = 2, nrow = 3, byrow = TRUE)
+lotkaVolterra.trajectory <- trajectory(lotkaVolterra, y0 = y0, tlim = c(0,200), parameters = c(12, 0.2, 4, 1.6, 5, 20, 0.9,0.3), col = c("black", "red", "purple"))
+
+
+
+
